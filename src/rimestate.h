@@ -20,6 +20,7 @@
 #include <vector>
 
 #define RIME_ASCII_MODE "ascii_mode"
+#define FLYPY_HACK_CANDIDATES "_flypy_hack_candidate"
 
 namespace fcitx::rime {
 
