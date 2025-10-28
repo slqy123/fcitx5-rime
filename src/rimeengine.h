@@ -82,6 +82,8 @@ FCITX_CONFIGURATION(
     OptionWithAnnotation<PreeditMode, PreeditModeI18NAnnotation> preeditMode{
         this, "PreeditMode", _("Preedit Mode"),
         isAndroid() ? PreeditMode::No : PreeditMode::ComposingText};
+    OptionWithAnnotation<PreeditMode, PreeditModeI18NAnnotation> preeditModeUI{
+        this, "PreeditModeUI", _("Preedit Mode UI"), PreeditMode::No};
     OptionWithAnnotation<SharedStatePolicy, SharedStatePolicyI18NAnnotation>
         sharedStatePolicy{this, "InputState", _("Shared Input State"),
                           SharedStatePolicy::All};
