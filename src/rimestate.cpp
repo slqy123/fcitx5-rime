@@ -344,16 +344,34 @@ void RimeState::updatePreedit(InputContext *ic, const RimeContext &context) {
     PreeditMode mode = ic->capabilityFlags().test(CapabilityFlag::Preedit)
                            ? *engine_->config().preeditMode
                            : PreeditMode::No;
+    PreeditMode modeUI = ic->capabilityFlags().test(CapabilityFlag::Preedit)
+                             ? *engine_->config().preeditModeUI
+                             : PreeditMode::ComposingText;
+
+    switch (modeUI) {
+    case PreeditMode::No:
+        ic->inputPanel().setPreedit(Text());
+        break;
+    case PreeditMode::ComposingText:
+        ic->inputPanel().setPreedit(preeditFromRimeContext(
+            context, TextFormatFlag::NoFlag, TextFormatFlag::NoFlag));
+        break;
+    case PreeditMode::CommitPreview:
+        if (context.composition.length > 0 && context.commit_text_preview) {
+            Text preeditText;
+            preeditText.append(context.commit_text_preview);
+            ic->inputPanel().setPreedit(preeditText);
+        } else {
+            ic->inputPanel().setPreedit(Text());
+        }
+        break;
+    }
 
     switch (mode) {
     case PreeditMode::No:
-        ic->inputPanel().setPreedit(preeditFromRimeContext(
-            context, TextFormatFlag::NoFlag, TextFormatFlag::NoFlag));
         ic->inputPanel().setClientPreedit(Text());
         break;
     case PreeditMode::CommitPreview: {
-        ic->inputPanel().setPreedit(preeditFromRimeContext(
-            context, TextFormatFlag::NoFlag, TextFormatFlag::NoFlag));
         if (context.composition.length > 0 && context.commit_text_preview) {
             Text clientPreedit;
             clientPreedit.append(context.commit_text_preview,
@@ -383,6 +401,22 @@ void RimeState::updatePreedit(InputContext *ic, const RimeContext &context) {
     }
 }
 
+bool flypyIsReverseMode(const RimeContext &context) {
+    // Check flypy reverse mode.
+    if (!context.composition.preedit) {
+        return false;
+    }
+    if (context.composition.preedit[0] == 'o') {
+        return context.composition.length > 1;
+    }
+    for (int i = 0; i < context.composition.length; i++) {
+        if (context.composition.preedit[i] == '`') {
+            return true;
+        }
+    }
+    return False;
+}
+
 void RimeState::updateUI(InputContext *ic, bool keyRelease) {
     auto &inputPanel = ic->inputPanel();
     if (!keyRelease) {
@@ -407,11 +441,14 @@ void RimeState::updateUI(InputContext *ic, bool keyRelease) {
 
         updatePreedit(ic, context);
 
-        if (context.menu.num_candidates) {
+        if (!context.menu.num_candidates) {
+            ic->inputPanel().setCandidateList(nullptr);
+        } else if ((api->get_option(session, FLYPY_HACK_CANDIDATES) &&
+                    !flypyIsReverseMode(context))) {
+            ic->inputPanel().setCandidateList(nullptr);
+        } else {
             ic->inputPanel().setCandidateList(
                 std::make_unique<RimeCandidateList>(engine_, ic, context));
-        } else {
-            ic->inputPanel().setCandidateList(nullptr);
         }
 
         api->free_context(&context);
