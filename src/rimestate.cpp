@@ -345,8 +345,8 @@ void RimeState::updatePreedit(InputContext *ic, const RimeContext &context) {
                            ? *engine_->config().preeditMode
                            : PreeditMode::No;
     PreeditMode modeUI = ic->capabilityFlags().test(CapabilityFlag::Preedit)
-                           ? *engine_->config().preeditModeUI
-                           : PreeditMode::ComposingText;
+                             ? *engine_->config().preeditModeUI
+                             : PreeditMode::ComposingText;
 
     switch (modeUI) {
     case PreeditMode::No:
@@ -401,6 +401,22 @@ void RimeState::updatePreedit(InputContext *ic, const RimeContext &context) {
     }
 }
 
+bool flypyIsReverseMode(const RimeContext &context) {
+    // Check flypy reverse mode.
+    if (!context.composition.preedit) {
+        return false;
+    }
+    if (context.composition.preedit[0] == 'o') {
+        return context.composition.length > 1;
+    }
+    for (int i = 0; i < context.composition.length; i++) {
+        if (context.composition.preedit[i] == '`') {
+            return true;
+        }
+    }
+    return False;
+}
+
 void RimeState::updateUI(InputContext *ic, bool keyRelease) {
     auto &inputPanel = ic->inputPanel();
     if (!keyRelease) {
@@ -426,7 +442,11 @@ void RimeState::updateUI(InputContext *ic, bool keyRelease) {
         updatePreedit(ic, context);
 
         if (context.menu.num_candidates &&
-            !api->get_option(session, RIME_HIDE_CANDIDATES)) {
+            (!api->get_option(session, RIME_HIDE_CANDIDATES))) {
+            ic->inputPanel().setCandidateList(
+                std::make_unique<RimeCandidateList>(engine_, ic, context));
+        } else if (api->get_option(session, FLYPY_HACK_CANDIDATES) &&
+                   flypyIsReverseMode(context)) {
             ic->inputPanel().setCandidateList(
                 std::make_unique<RimeCandidateList>(engine_, ic, context));
         } else {

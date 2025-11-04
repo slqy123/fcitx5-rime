@@ -20,6 +20,7 @@
 
 #define RIME_ASCII_MODE "ascii_mode"
 #define RIME_HIDE_CANDIDATES "_hide_candidate"
+#define FLYPY_HACK_CANDIDATES "_flypy_hack_candidate"
 
 namespace fcitx::rime {
 
